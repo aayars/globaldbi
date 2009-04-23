@@ -1,0 +1,6 @@
+We use this module for a variety of mundane IT-related tasks requiring
+DBI access. It serves us well.
+
+See GlobalDBI.pm for perldoc and copyright info.
+
+--aayars
