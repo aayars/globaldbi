@@ -326,6 +326,10 @@ sub get_error_string {
   return $self->{_lastErrorStr} || $DBI::errstr;
 }
 
+sub errstr {
+  return get_error_string(@_);
+}
+
 #=======================================================
 # PRIVATE METHODS
 #=======================================================
@@ -675,13 +679,13 @@ returns affected row count or insertid
     $testDate
   );
 
-=item * C<get_error_string>
+=item * C<errstr>, C<get_error_string>
 
 returns the latest error text set as a result of the last action
 
   my $insertID = $db->write_data('delete from non_existent_table');
   unless ($insertID > 0) {
-    print STDERR $db->get_error_string();
+    print STDERR $db->errstr();
   }
 
 =cut
@@ -734,13 +738,13 @@ returns affected row count or insertid
     $testDate
   );
 
-=item * C<get_error_string>
+=item * C<errstr>, C<get_error_string>
 
 returns the latest error text set as a result of the last action
 
   my $insertID = $db->write_data('delete from non_existent_table');
   unless ($insertID > 0) {
-    print STDERR $db->get_error_string();
+    print STDERR $db->errstr();
   }
 
 =back
