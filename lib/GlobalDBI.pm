@@ -15,22 +15,15 @@ use warnings;
 
 our $VERSION = "0.21";
 
-use Exporter;
+use base qw| Exporter |;
+
 use DBI;
 use Fcntl;
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %DBH);
+use vars qw(@EXPORT_OK %DBH);
 
-our %App = ( );
 our %CONNECTION = ( );
-
-@ISA = qw(Exporter);
-
-@EXPORT = qw(%App);
-
-@EXPORT_OK = @EXPORT;
-
-%App = (
+our %App = (
 #  MyApp => { # User => Password
 #    bob => 'jk32jk3jjkl',
 #  },
@@ -39,6 +32,8 @@ our %CONNECTION = ( );
 #    sally => 'jk32jk3jjkl',
 #  },
 );
+
+@EXPORT_OK = qw(%App %CONNECTION);
 
 our $DEBUG;
 our $LOG_ERRORS;
@@ -60,6 +55,15 @@ our $LOG_DIR    = '/tmp';
 #     },
 #   ],
 # );
+
+sub define {
+  my $class = shift;
+  my %sources = @_;
+
+  for my $source ( keys %sources ) {
+    $CONNECTION{$source} = $sources{$source};
+  }
+}
 
 sub new {
   my $class = shift;
@@ -189,7 +193,7 @@ sub select_hash_by_key {
   {
     $self->_set_err_str(
       'select_hash_by_key: select does not contain key: ' . $key );
-    $self->_log_error('R');
+    $LOG_ERRORS && $self->_log_error('R');
     return undef;
   }
 
@@ -333,7 +337,7 @@ sub _get_db_connection {
 
   unless ( defined $CONNECTION{ $self->{dbName} } ) {
     $self->_set_err_str( 'unknown db: ' . $self->{dbName} );
-    $self->_log_error('W');
+    $LOG_ERRORS && $self->_log_error('W');
     return undef;
   }
 
@@ -353,7 +357,7 @@ sub _get_db_connection {
   }
   unless ($dbh) {
     $self->_set_err_str($@);
-    $self->_log_error('W');
+    $LOG_ERRORS && $self->_log_error('W');
     return undef;
   }
 
@@ -377,7 +381,7 @@ sub _do_sql {
   unless ( ref $self->{dbh} ) {
     my $values = $params ? join( ':-:', @$params ) : '';
     $self->_set_err_str("not connected - Sql: $sql :-: $values\n");
-    $self->_log_error($rw);
+    $LOG_ERRORS && $self->_log_error($rw);
     return undef;
   }
 
@@ -390,14 +394,14 @@ sub _do_sql {
     unless ( $self->{_statements}{$sql} = $sth = $self->{dbh}->prepare($sql) ) {
       $self->_set_err_str(
         "failed sth obj creation: $DBI::errstr - Sql: $sql\n");
-      $self->_log_error($rw);
+      $LOG_ERRORS && $self->_log_error($rw);
       return undef;
     }
   }
 
   unless ( $sth = $self->{dbh}->prepare($sql) ) {
     $self->_set_err_str("prepare failed: $DBI::errstr - Sql: $sql\n");
-    $self->_log_error($rw);
+    $LOG_ERRORS && $self->_log_error($rw);
     return undef;
   }
 
@@ -408,7 +412,7 @@ sub _do_sql {
     my $errs = $DBI::errstr || '';
     my $vals = ref($params) ? join( ',', @$params ) : 'n/a';
     $self->_set_err_str("execute error: $sql with: $vals - $errs");
-    $self->_log_error($rw);
+    $LOG_ERRORS && $self->_log_error($rw);
     $sth->finish();
     return undef;
   }
@@ -459,10 +463,6 @@ sub _log_error {
 
   my $message = join( ' ', time, $0, $error );
 
-  warn $message;
-
-  return if !$LOG_ERRORS;
-
   my $name = $self->{dbName};
   $name =~ s/.*\///; # SQLite uses full paths
 
@@ -503,6 +503,26 @@ GlobalDBI - Simple DBI wrapper with support for multiple connections
 =cut
 
 =head1 SYNOPSIS
+
+  use GlobalDBI;
+
+  #
+  # Define a new data source:
+  #
+  my $dsn = 'DBI:SQLite:dbname=example';
+
+  GlobalDBI->define(
+    "YourApp" => [ $dsn, '', '', { RaiseError => 1 } ],
+  };
+
+  #
+  # Connect to a named data source:
+  #
+  my $dbi = GlobalDBI->new(
+    dbName => "YourApp"
+  );
+
+=head1 DESCRIPTION
                                                                                 
 GlobalDBI is a helper/wrapper for L<DBI>.  It provides error logging,
 methods to perform common db functions, and support for connections to
@@ -521,7 +541,7 @@ Most all methods return undef on error so you should check the value
 before using it.
                                                                                 
 =head2 Example
-                                                                                
+
   my $myDBI = GlobalDBI->new(dbName => 'my_db');
   my $sth = $myDBI->select_data('select * from JUNK where a=? and b=?',
     ['joe', 'bob']);

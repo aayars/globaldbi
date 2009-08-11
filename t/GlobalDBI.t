@@ -87,13 +87,9 @@ sub createTable {
 
   my $dsn = sprintf('DBI:SQLite:dbname=%s',$db);
 
-  eval {
-    package GlobalDBI;
-
-    our %CONNECTION = (
-      $db => [ $dsn, '', '', { RaiseError => 1 } ]
-    );
-  };
+  GlobalDBI->define(
+    $db => [ $dsn, '', '', { RaiseError => 1 } ]
+  );
 
   my $dbi = GlobalDBI->new(dbname => $db);
 
