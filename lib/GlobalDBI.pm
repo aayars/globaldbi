@@ -13,7 +13,7 @@ package GlobalDBI;
 use strict;
 use warnings;
 
-our $VERSION = "0.20";
+our $VERSION = "0.21";
 
 use Exporter;
 use DBI;
@@ -38,8 +38,8 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %App %CONNECTION %DBH);
 );
 
 our $DEBUG;
+our $LOG_ERRORS;
 
-our $LOG_ERRORS = 1;
 our $LOG_DIR    = '/tmp';
 
 #=================================
@@ -83,7 +83,9 @@ sub _getDBPasswd {
 
   my $passwd;
 
-  eval {
+  do {
+    no warnings "once";
+
     $passwd = $GlobalDBI::Credentials::App{ $ARGS{App} }->{ $ARGS{username} };
   };
 
@@ -184,7 +186,7 @@ sub select_hash_by_key {
   {
     $self->_set_err_str(
       'select_hash_by_key: select does not contain key: ' . $key );
-    $LOG_ERRORS && $self->_log_error('R');
+    $self->_log_error('R');
     return undef;
   }
 
@@ -328,7 +330,7 @@ sub _get_db_connection {
 
   unless ( defined $CONNECTION{ $self->{dbName} } ) {
     $self->_set_err_str( 'unknown db: ' . $self->{dbName} );
-    $LOG_ERRORS && $self->_log_error('W');
+    $self->_log_error('W');
     return undef;
   }
 
@@ -348,7 +350,7 @@ sub _get_db_connection {
   }
   unless ($dbh) {
     $self->_set_err_str($@);
-    $LOG_ERRORS && $self->_log_error('W');
+    $self->_log_error('W');
     return undef;
   }
 
@@ -372,7 +374,7 @@ sub _do_sql {
   unless ( ref $self->{dbh} ) {
     my $values = $params ? join( ':-:', @$params ) : '';
     $self->_set_err_str("not connected - Sql: $sql :-: $values\n");
-    $LOG_ERRORS && $self->_log_error($rw);
+    $self->_log_error($rw);
     return undef;
   }
 
@@ -392,7 +394,7 @@ sub _do_sql {
 
   unless ( $sth = $self->{dbh}->prepare($sql) ) {
     $self->_set_err_str("prepare failed: $DBI::errstr - Sql: $sql\n");
-    $LOG_ERRORS && $self->_log_error($rw);
+    $self->_log_error($rw);
     return undef;
   }
 
@@ -403,7 +405,7 @@ sub _do_sql {
     my $errs = $DBI::errstr || '';
     my $vals = ref($params) ? join( ',', @$params ) : 'n/a';
     $self->_set_err_str("execute error: $sql with: $vals - $errs");
-    $LOG_ERRORS && $self->_log_error($rw);
+    $self->_log_error($rw);
     $sth->finish();
     return undef;
   }
@@ -449,10 +451,20 @@ sub _set_err_str {
 sub _log_error {
   my ( $self, $type, $error ) = @_;
 
-  my $sqlLog = join( '/', $LOG_DIR, $self->{dbName} );
-  $sqlLog .= $type eq 'W' ? '_sqlErr_write' : '_sqlErr_read';
   $error ||= $self->{_lastErrorStr};
   $error =~ s/\n/ /g;
+
+  my $message = join( ' ', time, $0, $error );
+
+  warn $message;
+
+  return if !$LOG_ERRORS;
+
+  my $name = $self->{dbName};
+  $name =~ s/.*\///; # SQLite uses full paths
+
+  my $sqlLog = join( '/', $LOG_DIR, $name );
+  $sqlLog .= $type eq 'W' ? '_sqlErr_write' : '_sqlErr_read';
 
   local (*LOG);
   open( LOG, ">>$sqlLog" )
@@ -461,7 +473,7 @@ sub _log_error {
   flock( LOG, &Fcntl::LOCK_EX );
   select( ( select(LOG), $| = 1 )[0] );
   seek( LOG, 0, 2 );
-  print LOG join( ' ', time, $0, $error );
+  print LOG $message;
   print LOG "\n";
   flock( LOG, &Fcntl::LOCK_UN );
 
@@ -507,7 +519,7 @@ before using it.
                                                                                 
 =head2 Example
                                                                                 
-  my $myDBI = GlobalDBI->new('my_db');
+  my $myDBI = GlobalDBI->new(dbName => 'my_db');
   my $sth = $myDBI->select_data('select * from JUNK where a=? and b=?',
     ['joe', 'bob']);
   foreach my $row($sth->fetchrow_hashref())
@@ -712,15 +724,11 @@ returns the latest error text set as a result of the last action
 
 =head1 REVISION
 
-  This document is for version 0.20 of GlobalDBI.
-
-  $Id: //depotit/tools/snitchd/GlobalDBI-0.20/lib/GlobalDBI.pm#1 $
+This document is for version 0.21 of GlobalDBI.
 
 =head1 AUTHOR
 
-  Ryan Rose,
-  Joe Spinney,
-  Alex Ayars <pause@nodekit.org>
+Ryan Rose, Joe Spinney, Alex Ayars <pause@nodekit.org>
 
 =head1 COPYRIGHT
 
