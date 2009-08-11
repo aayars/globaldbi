@@ -19,7 +19,10 @@ use Exporter;
 use DBI;
 use Fcntl;
 
-use vars qw(@ISA @EXPORT @EXPORT_OK %App %CONNECTION %DBH);
+use vars qw(@ISA @EXPORT @EXPORT_OK %DBH);
+
+our %App = ( );
+our %CONNECTION = ( );
 
 @ISA = qw(Exporter);
 
