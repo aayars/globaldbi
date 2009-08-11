@@ -5,3 +5,4 @@ INSTALL
 Changes
 Makefile.PL
 lib/GlobalDBI.pm
+t/GlobalDBI.t
