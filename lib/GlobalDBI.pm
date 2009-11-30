@@ -22,15 +22,16 @@ use Fcntl;
 
 use vars qw(@EXPORT_OK %DBH);
 
-our %CONNECTION = ( );
-our %App = (
-#  MyApp => { # User => Password
-#    bob => 'jk32jk3jjkl',
-#  },
-#
-#  MyOtherApp => {
-#    sally => 'jk32jk3jjkl',
-#  },
+our %CONNECTION = ();
+our %App        = (
+
+  #  MyApp => { # User => Password
+  #    bob => 'jk32jk3jjkl',
+  #  },
+  #
+  #  MyOtherApp => {
+  #    sally => 'jk32jk3jjkl',
+  #  },
 );
 
 @EXPORT_OK = qw(%App %CONNECTION);
@@ -38,7 +39,7 @@ our %App = (
 our $DEBUG;
 our $LOG_ERRORS;
 
-our $LOG_DIR    = '/tmp';
+our $LOG_DIR = '/tmp';
 
 #=================================
 # MySQL Database Setups Go Here
@@ -57,7 +58,7 @@ our $LOG_DIR    = '/tmp';
 # );
 
 sub define {
-  my $class = shift;
+  my $class   = shift;
   my %sources = @_;
 
   for my $source ( keys %sources ) {
@@ -73,7 +74,7 @@ sub new {
   my %args = @_;
 
   $self->_init(%args);
-  $self->{dbName} ||= $args{dbname}; # Legacy usage
+  $self->{dbName} ||= $args{dbname};    # Legacy usage
   $self->{dbName} ||= $args{dbName};
   $self->{dbh} = $self->_get_db_connection();
 
@@ -262,8 +263,7 @@ sub insert_record {
     my $value = length( $data->{$field} ) ? $data->{$field} : '';
     if ( $value =~ m/^(curdate\(\)|now\(\))$/i ) {
       push( @placeHolders, $value );
-    }
-    else {
+    } else {
       push( @placeHolders, '?' );
       push( @values,       $value );
     }
@@ -286,8 +286,7 @@ sub update_record {
     my @values = @{ $params->{keyValue} };
     $where .= $self->_build_in_list( scalar @values );
     push( @$qArgs, @values );
-  }
-  else {
+  } else {
     $where .= '=? LIMIT 1';
     push( @$qArgs, $params->{keyValue} );
   }
@@ -307,8 +306,7 @@ sub delete_record {
     my @values = @{ $params->{value} };
     $condition .= $self->_build_in_list( scalar @values );
     push( @$qArgs, @values );
-  }
-  else {
+  } else {
     $condition .= "=? $limit";
     push( @$qArgs, $params->{value} );
   }
@@ -343,7 +341,7 @@ sub errstr {
 sub _get_db_connection {
   my $self = shift;
 
-  $DBH{$$} ||= { };
+  $DBH{$$} ||= {};
 
   unless ( defined $CONNECTION{ $self->{dbName} } ) {
     $self->_set_err_str( 'unknown db: ' . $self->{dbName} );
@@ -351,7 +349,8 @@ sub _get_db_connection {
     return undef;
   }
 
-  return $DBH{$$}->{ $self->{dbName} } if ( defined $DBH{$$}->{ $self->{dbName} } );
+  return $DBH{$$}->{ $self->{dbName} }
+    if ( defined $DBH{$$}->{ $self->{dbName} } );
 
   $DEBUG && print STDERR "DBI connect: $self->{dbName}\n";
 
@@ -399,8 +398,7 @@ sub _do_sql {
   if ( $self->{_statements}{$sql} ) {    # check for cached statements
     $DEBUG && print STDERR "found cached statement: $sql\n";
     $sth = $self->{_statements}{$sql};
-  }
-  else {
+  } else {
     unless ( $self->{_statements}{$sql} = $sth = $self->{dbh}->prepare($sql) ) {
       $self->_set_err_str(
         "failed sth obj creation: $DBI::errstr - Sql: $sql\n");
@@ -437,8 +435,7 @@ sub _build_update_sql {
     my $value = length( $dataRef->{$field} ) ? $dataRef->{$field} : '';
     if ( $value =~ m/curdate\(\)|now\(\)/i ) {
       push( @set, join( '=', $field, $value ) );
-    }
-    else {
+    } else {
       push( @set,    $field . '=?' );
       push( @values, $value );
     }
@@ -474,7 +471,7 @@ sub _log_error {
   my $message = join( ' ', time, $0, $error );
 
   my $name = $self->{dbName};
-  $name =~ s/.*\///; # SQLite uses full paths
+  $name =~ s/.*\///;    # SQLite uses full paths
 
   my $sqlLog = join( '/', $LOG_DIR, $name );
   $sqlLog .= $type eq 'W' ? '_sqlErr_write' : '_sqlErr_read';
