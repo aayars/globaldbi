@@ -1,3 +1,10 @@
-August 2009: Add simple test script, small doc update
+Nov 2009 / .22
+  - fixed documentation error
+  - minor tweaks to some error handling
 
-April 2009: Initial CPAN release
+Aug 2009 / .21:
+  - add simple test script, small doc update
+
+Apr 2009 / .20:
+  - initial CPAN release
+
