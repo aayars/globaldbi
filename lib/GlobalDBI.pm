@@ -13,7 +13,7 @@ package GlobalDBI;
 use strict;
 use warnings;
 
-our $VERSION = "0.21";
+our $VERSION = "0.22";
 
 use base qw| Exporter |;
 
@@ -73,8 +73,14 @@ sub new {
   my %args = @_;
 
   $self->_init(%args);
-  $self->{dbName} ||= $args{dbname};
+  $self->{dbName} ||= $args{dbname}; # Legacy usage
+  $self->{dbName} ||= $args{dbName};
   $self->{dbh} = $self->_get_db_connection();
+
+  if ( $self->errstr ) {
+    warn $self->errstr;
+    return undef;
+  }
 
   $self->{_statements} = {};
 
@@ -522,9 +528,7 @@ GlobalDBI - Simple DBI wrapper with support for multiple connections
   #
   # Connect to a named data source:
   #
-  my $dbi = GlobalDBI->new(
-    dbName => "YourApp"
-  );
+  my $dbi = GlobalDBI->new(dbName => "YourApp") || die $@;
 
 =head1 DESCRIPTION
                                                                                 
@@ -751,7 +755,7 @@ returns the latest error text set as a result of the last action
 
 =head1 REVISION
 
-This document is for version 0.21 of GlobalDBI.
+This document is for version 0.22 of GlobalDBI.
 
 =head1 AUTHOR
 
